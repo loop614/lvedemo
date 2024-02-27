@@ -4,7 +4,7 @@ LDFLAGS = -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi
 LveDemo: *.cpp *.hpp
 	g++ $(CFLAGS) -o LveDemo *.cpp $(LDFLAGS)
 
-Shaders:  shaders/shader.vert shaders/shader.frag
+Shaders:  shaders/*.vert shaders/*.frag
 	./shaders/compile.sh
 
 demo: LveDemo Shaders

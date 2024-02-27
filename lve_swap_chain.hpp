@@ -17,8 +17,8 @@ namespace lve
         LveSwapChain(LveDevice &deviceRef, VkExtent2D windowExtent);
         ~LveSwapChain();
 
-        LveSwapChain(const LveSwapChain &) = delete;
-        void operator=(const LveSwapChain &) = delete;
+        LveSwapChain(const LveSwapChain&) = delete;
+        LveSwapChain& operator=(const LveSwapChain&) = delete;
 
         VkFramebuffer getFrameBuffer(int index) { return swapChainFramebuffers[index]; }
         VkRenderPass getRenderPass() { return renderPass; }
