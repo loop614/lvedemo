@@ -31,17 +31,17 @@ namespace lve
         }
         else
         {
-            lveSwapChain = std::make_unique<LveSwapChain>(lveDevice, extent, std::move(this->lveSwapChain));
-            if (this->lveSwapChain->imageCount() != this->commandBuffers.size()) {
-                this->freeCommandBuffers();
-                this->createCommandBuffers();
+            std::shared_ptr<LveSwapChain> oldSwapChain = std::move(this->lveSwapChain);
+            lveSwapChain = std::make_unique<LveSwapChain>(lveDevice, extent, oldSwapChain);
+            if (!oldSwapChain->compareSwapFormats(*this->lveSwapChain.get())) {
+                throw std::runtime_error("swap chain image or depth format has change");
             }
         }
     }
 
     void LveRenderer::createCommandBuffers()
     {
-        this->commandBuffers.resize(this->lveSwapChain->imageCount());
+        this->commandBuffers.resize(LveSwapChain::MAX_FRAMES_IN_FLIGHT);
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -72,7 +72,7 @@ namespace lve
         VkResult result = lveSwapChain->acquireNextImage(&currentImageIndex);
         if (result == VK_ERROR_OUT_OF_DATE_KHR)
         {
-            recreateSwapChain();
+            this->recreateSwapChain();
             return nullptr;
         }
 
@@ -116,6 +116,7 @@ namespace lve
         }
 
         isFrameStarted = false;
+        this->currentFrameIndex = (this->currentFrameIndex + 1) % LveSwapChain::MAX_FRAMES_IN_FLIGHT;
     }
 
     void LveRenderer::beginSwapChainRenderPass(VkCommandBuffer commandBuffer)
