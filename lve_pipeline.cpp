@@ -100,8 +100,14 @@ namespace lve
 
         pipelineInfo.basePipelineIndex = -1;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-        if (vkCreateGraphicsPipelines(this->lveDevice.device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &this->graphicsPipeline) != VK_SUCCESS)
-        {
+        if (vkCreateGraphicsPipelines(
+            this->lveDevice.device(),
+            VK_NULL_HANDLE,
+            1,
+            &pipelineInfo,
+            nullptr,
+            &this->graphicsPipeline) != VK_SUCCESS
+        ) {
             throw std::runtime_error("failed to create graphics pipeline");
         }
     }
@@ -120,7 +126,11 @@ namespace lve
 
     void LvePipeline::bind(VkCommandBuffer commandBuffer)
     {
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->graphicsPipeline);
+        vkCmdBindPipeline(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            this->graphicsPipeline
+        );
     }
 
     void LvePipeline::defaultPipelineConfigInfo(PipelineConfigInfo &configInfo)

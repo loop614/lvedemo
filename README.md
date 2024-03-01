@@ -2,7 +2,7 @@
 - Following Brendan Galea's vulkan [tutorial](https://www.youtube.com/playlist?list=PL8327DO66nu9qYVKLDmdLW_84-yE4auCR)
 - Little Vulkan Engine
 
-<div align="left"><img src="https://raw.githubusercontent.com/loop614/lvedemo/main/triangle.png" width=800 height=450 alt="triangle"/></div>
+<div align="left"><img src="https://raw.githubusercontent.com/loop614/lvedemo/main/walk.gif" width=600 height=338 alt="walk"/></div>
 
 ## Quick Start
 ```console

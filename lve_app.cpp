@@ -1,15 +1,25 @@
 #include "lve_app.hpp"
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+
 #include <array>
 #include <stdexcept>
 
 namespace lve {
+    struct SimplePushConstantData {
+        glm::vec2 offset;
+        alignas(16) glm::vec3 color;
+    };
+
     LveApp::LveApp() {
         loadModels();
         createPipelineLayout();
         recreateSwapChain();
         createCommandBuffers();
     }
+
     LveApp::~LveApp() {
         vkDestroyPipelineLayout(this->lveDevice.device(), this->pipelineLayout, nullptr);
     }
@@ -33,12 +43,17 @@ namespace lve {
     }
 
     void LveApp::createPipelineLayout() {
+        VkPushConstantRange pushConstantRange;
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(SimplePushConstantData);
+
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 0;
         pipelineLayoutInfo.pSetLayouts = nullptr;
-        pipelineLayoutInfo.pushConstantRangeCount = 0;
-        pipelineLayoutInfo.pPushConstantRanges = nullptr;
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
+        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
         if (vkCreatePipelineLayout(this->lveDevice.device(), &pipelineLayoutInfo, nullptr, &this->pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout");
@@ -100,13 +115,16 @@ namespace lve {
         vkFreeCommandBuffers(
             this->lveDevice.device(),
             this->lveDevice.getCommandPool(),
-            static_cast<float>(this->commandBuffers.size()),
+            static_cast<uint32_t>(this->commandBuffers.size()),
             this->commandBuffers.data()
         );
         this->commandBuffers.clear();
     }
 
     void LveApp::recordCommandBuffer(int imageIndex) {
+        static int frame = 30;
+        frame = (frame + 1) % 100;
+
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -123,7 +141,7 @@ namespace lve {
         renderPassInfo.renderArea.extent = this->lveSwapchain->getSwapChainExtent();
 
         std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
+        clearValues[0].color = {0.01f, 0.01f, 0.01f, 1.0f};
         clearValues[1].depthStencil = {1.0f, 0};
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
@@ -142,7 +160,22 @@ namespace lve {
 
             this->lvePipeline->bind(this->commandBuffers[imageIndex]);
             this->lveModel->bind(this->commandBuffers[imageIndex]);
-            this->lveModel->draw(this->commandBuffers[imageIndex]);
+
+            for (int j = 0; j < 4; j++) {
+                SimplePushConstantData push{};
+                push.offset = {-0.5f + frame * 0.02, -0.4f + j * 0.25f};
+                push.color = {0.0f, 0.0f, 0.2f + 0.2f * j};
+
+                vkCmdPushConstants(
+                    this->commandBuffers[imageIndex],
+                    this->pipelineLayout,
+                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                    0,
+                    sizeof(SimplePushConstantData),
+                    &push
+                );
+                this->lveModel->draw(this->commandBuffers[imageIndex]);
+            }
         vkCmdEndRenderPass(this->commandBuffers[imageIndex]);
         if (vkEndCommandBuffer(this->commandBuffers[imageIndex]) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer");
