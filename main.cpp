@@ -1,11 +1,11 @@
-#include "first_app.hpp"
+#include "lve_app.hpp"
 
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 
 int main() {
-    lve::FirstApp app{};
+    lve::LveApp app{};
     try {
         app.run();
     } catch (const std::exception &e) {

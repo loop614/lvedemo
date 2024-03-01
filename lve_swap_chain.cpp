@@ -167,8 +167,8 @@ namespace lve
         else
         {
             createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            createInfo.queueFamilyIndexCount = 0;     // Optional
-            createInfo.pQueueFamilyIndices = nullptr; // Optional
+            createInfo.queueFamilyIndexCount = 0;
+            createInfo.pQueueFamilyIndices = nullptr;
         }
 
         createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
@@ -179,7 +179,7 @@ namespace lve
 
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        if (vkCreateSwapchainKHR(device.device(), &createInfo, nullptr, &swapChain) != VK_SUCCESS)
+        if (vkCreateSwapchainKHR(this->device.device(), &createInfo, nullptr, &swapChain) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create swap chain!");
         }
@@ -188,9 +188,9 @@ namespace lve
         // allowed to create a swap chain with more. That's why we'll first query the final number of
         // images with vkGetSwapchainImagesKHR, then resize the container and finally call it again to
         // retrieve the handles.
-        vkGetSwapchainImagesKHR(device.device(), swapChain, &imageCount, nullptr);
+        vkGetSwapchainImagesKHR(this->device.device(), swapChain, &imageCount, nullptr);
         swapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(device.device(), swapChain, &imageCount, swapChainImages.data());
+        vkGetSwapchainImagesKHR(this->device.device(), swapChain, &imageCount, swapChainImages.data());
 
         swapChainImageFormat = surfaceFormat.format;
         swapChainExtent = extent;

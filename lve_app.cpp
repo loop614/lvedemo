@@ -1,19 +1,20 @@
-#include "first_app.hpp"
+#include "lve_app.hpp"
 
 #include <array>
 #include <stdexcept>
 
 namespace lve {
-    FirstApp::FirstApp() {
+    LveApp::LveApp() {
+        loadModels();
         createPipelineLayout();
         createPipeline();
         createCommandBuffers();
     }
-    FirstApp::~FirstApp() {
+    LveApp::~LveApp() {
         vkDestroyPipelineLayout(this->lveDevice.device(), this->pipelineLayout, nullptr);
     }
 
-    void FirstApp::run() {
+    void LveApp::run() {
         while(!this->lveWindow.shouldClose()) {
             glfwPollEvents();
             drawFrame();
@@ -22,7 +23,12 @@ namespace lve {
         vkDeviceWaitIdle(this->lveDevice.device());
     };
 
-    void FirstApp::createPipelineLayout() {
+    void LveApp::loadModels() {
+        std::vector<LveModel::Vertex> vertices {{{0.0f, -0.5f}},{{0.5f, 0.5f}},{{-0.5f, 0.5f}}};
+        this->lveModel = std::make_unique<LveModel>(this->lveDevice, vertices);
+    }
+
+    void LveApp::createPipelineLayout() {
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 0;
@@ -35,7 +41,7 @@ namespace lve {
         }
     }
 
-    void FirstApp::createPipeline() {
+    void LveApp::createPipeline() {
         PipelineConfigInfo pipelineConfig = LvePipeline::defaultPipelineConfigInfo(this->lveSwapchain.width(), this->lveSwapchain.height());
         pipelineConfig.renderPass = lveSwapchain.getRenderPass();
         pipelineConfig.pipelineLayout = this->pipelineLayout;
@@ -47,7 +53,7 @@ namespace lve {
         );
     }
 
-    void FirstApp::createCommandBuffers() {
+    void LveApp::createCommandBuffers() {
         this->commandBuffers.resize(this->lveSwapchain.imageCount());
 
         VkCommandBufferAllocateInfo allocInfo {};
@@ -85,7 +91,8 @@ namespace lve {
             vkCmdBeginRenderPass(this->commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
             this->lvePipeline->bind(this->commandBuffers[i]);
-            vkCmdDraw(this->commandBuffers[i], 3, 1, 0, 0);
+            this->lveModel->bind(this->commandBuffers[i]);
+            this->lveModel->draw(this->commandBuffers[i]);
 
             vkCmdEndRenderPass(this->commandBuffers[i]);
             if (vkEndCommandBuffer(this->commandBuffers[i]) != VK_SUCCESS) {
@@ -94,7 +101,7 @@ namespace lve {
         }
     }
 
-    void FirstApp::drawFrame() {
+    void LveApp::drawFrame() {
         uint32_t imageIndex;
         auto result = this->lveSwapchain.acquireNextImage(&imageIndex);
         if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {

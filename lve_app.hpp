@@ -1,31 +1,36 @@
 #pragma once
 
+#include <memory>
+#include <vector>
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
 #include "lve_pipeline.hpp"
 #include "lve_window.hpp"
 #include "lve_device.hpp"
 #include "lve_swap_chain.hpp"
-
-#include <memory>
-#include <vector>
+#include "lve_model.hpp"
 
 namespace lve {
-    class FirstApp {
+    class LveApp {
         public:
             static constexpr int HEIGHT = 600;
             static constexpr int WIDTH = 800;
             void run();
 
-            FirstApp();
-            ~FirstApp();
+            LveApp();
+            ~LveApp();
 
-            FirstApp(const FirstApp &) = delete;
-            FirstApp &operator=(const FirstApp &) = delete;
+            LveApp(const LveApp &) = delete;
+            LveApp &operator=(const LveApp &) = delete;
 
         private:
             void createPipelineLayout();
             void createPipeline();
             void createCommandBuffers();
             void drawFrame();
+            void loadModels();
 
             LveWindow lveWindow{WIDTH, HEIGHT, "Hello Vulkan!"};
             LveDevice lveDevice{lveWindow};
@@ -33,5 +38,6 @@ namespace lve {
             std::unique_ptr<LvePipeline> lvePipeline;
             VkPipelineLayout pipelineLayout;
             std::vector<VkCommandBuffer> commandBuffers;
+            std::unique_ptr<LveModel> lveModel;
     };
 }
