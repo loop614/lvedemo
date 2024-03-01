@@ -3,18 +3,20 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 
 #include <array>
 #include <stdexcept>
 
 namespace lve {
     struct SimplePushConstantData {
+        glm::mat2 transform{1.f};
         glm::vec2 offset;
         alignas(16) glm::vec3 color;
     };
 
     LveApp::LveApp() {
-        loadModels();
+        loadGameObjects();
         createPipelineLayout();
         recreateSwapChain();
         createCommandBuffers();
@@ -33,13 +35,22 @@ namespace lve {
         vkDeviceWaitIdle(this->lveDevice.device());
     };
 
-    void LveApp::loadModels() {
+    void LveApp::loadGameObjects() {
         std::vector<LveModel::Vertex> vertices {
             {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
             {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
             {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
         };
-        this->lveModel = std::make_unique<LveModel>(this->lveDevice, vertices);
+        std::shared_ptr<LveModel> lveModel = std::make_shared<LveModel>(this->lveDevice, vertices);
+
+        LveGameObject triangle = LveGameObject::createGameObject();
+        triangle.model = lveModel;
+        triangle.color = {.1f, .8f, .1f};
+        triangle.transform2d.translation.x = .2f;
+        triangle.transform2d.scale = {2.f, .5f};
+        triangle.transform2d.rotation = .25f * glm::two_pi<float>();
+
+        gameObjects.push_back(std::move(triangle));
     }
 
     void LveApp::createPipelineLayout() {
@@ -122,9 +133,6 @@ namespace lve {
     }
 
     void LveApp::recordCommandBuffer(int imageIndex) {
-        static int frame = 30;
-        frame = (frame + 1) % 100;
-
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -158,27 +166,34 @@ namespace lve {
             vkCmdSetViewport(commandBuffers[imageIndex], 0, 1, &viewport);
             vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
 
-            this->lvePipeline->bind(this->commandBuffers[imageIndex]);
-            this->lveModel->bind(this->commandBuffers[imageIndex]);
+            renderGameObjects(commandBuffers[imageIndex]);
 
-            for (int j = 0; j < 4; j++) {
-                SimplePushConstantData push{};
-                push.offset = {-0.5f + frame * 0.02, -0.4f + j * 0.25f};
-                push.color = {0.0f, 0.0f, 0.2f + 0.2f * j};
+        vkCmdEndRenderPass(commandBuffers[imageIndex]);
+        if (vkEndCommandBuffer(commandBuffers[imageIndex]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to record command buffer!");
+        }
+    }
 
-                vkCmdPushConstants(
-                    this->commandBuffers[imageIndex],
-                    this->pipelineLayout,
-                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                    0,
-                    sizeof(SimplePushConstantData),
-                    &push
-                );
-                this->lveModel->draw(this->commandBuffers[imageIndex]);
-            }
-        vkCmdEndRenderPass(this->commandBuffers[imageIndex]);
-        if (vkEndCommandBuffer(this->commandBuffers[imageIndex]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to record command buffer");
+    void LveApp::renderGameObjects(VkCommandBuffer commandBuffer) {
+        this->lvePipeline->bind(commandBuffer);
+
+        for (auto& obj : gameObjects) {
+            obj.transform2d.rotation = glm::mod(obj.transform2d.rotation + 0.01f, glm::two_pi<float>());
+            SimplePushConstantData push{};
+            push.offset = obj.transform2d.translation;
+            push.color = obj.color;
+            push.transform = obj.transform2d.mat2();
+
+            vkCmdPushConstants(
+                commandBuffer,
+                this->pipelineLayout,
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                0,
+                sizeof(SimplePushConstantData),
+                &push
+            );
+            obj.model->bind(commandBuffer);
+            obj.model->draw(commandBuffer);
         }
     }
 
