@@ -23,7 +23,9 @@ namespace lve {
 
         private:
             void loadGameObjects();
-            LveWindow lveWindow{WIDTH, HEIGHT, "Hello Vulkan!"};
+            std::unique_ptr<LveModel> createCubeModel(LveDevice &device, glm::vec3 offset);
+
+            LveWindow lveWindow{WIDTH, HEIGHT, "Little Vulkan Engine!"};
             LveDevice lveDevice{lveWindow};
             LveRenderer lveRenderer{lveWindow, lveDevice};
             std::vector<LveGameObject> gameObjects;
