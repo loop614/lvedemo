@@ -1,4 +1,6 @@
 #include "lve_app.hpp"
+#include "keyboard_movement_controller.hpp"
+#include "lve_camera.hpp"
 #include "lve_render_system.hpp"
 
 #define GLM_FORCE_RADIANS
@@ -8,6 +10,7 @@
 
 #include <array>
 #include <stdexcept>
+#include <chrono>
 
 namespace lve
 {
@@ -17,14 +20,32 @@ namespace lve
     void LveApp::run()
     {
         LveRenderSystem renderSystem{this->lveDevice, this->lveRenderer.getSwapChainRenderPass()};
+        LveCamera camera{};
+        // camera.setViewDirection(glm::vec3(0.f), glm::vec3(0.5f, 0.f, 1.f));
+        camera.setViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f));
+
+        auto viewerObject = LveGameObject::createGameObject();
+        KeyboardMovementController cameraController{};
+        auto currentTime = std::chrono::high_resolution_clock::now();
 
         while (!this->lveWindow.shouldClose())
         {
             glfwPollEvents();
+
+            auto newTime = std::chrono::high_resolution_clock::now();
+            float frameTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
+            currentTime = newTime;
+
+            cameraController.moveInPlaneXZ(this->lveWindow.getGLFWwindow(), frameTime, viewerObject);
+            camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
+
+            float aspect = this->lveRenderer.getAspectRatio();
+            camera.setPerspectiveProjection(glm::radians(50.f), aspect, 0.1f, 10.f);
+
             if (VkCommandBuffer commandBuffer = this->lveRenderer.beginFrame())
             {
                 this->lveRenderer.beginSwapChainRenderPass(commandBuffer);
-                renderSystem.renderGameObjects(commandBuffer, this->gameObjects);
+                renderSystem.renderGameObjects(commandBuffer, this->gameObjects, camera);
                 this->lveRenderer.endSwapChainRenderPass(commandBuffer);
                 this->lveRenderer.endFrame();
             }
@@ -36,7 +57,7 @@ namespace lve
     std::unique_ptr<LveModel> LveApp::createCubeModel(LveDevice &device, glm::vec3 offset)
     {
         std::vector<LveModel::Vertex> vertices{
-            // left face (white)
+            // west white
             {{-.5f, -.5f, -.5f}, {.9f, .9f, .9f}},
             {{-.5f, .5f, .5f}, {.9f, .9f, .9f}},
             {{-.5f, -.5f, .5f}, {.9f, .9f, .9f}},
@@ -44,23 +65,23 @@ namespace lve
             {{-.5f, .5f, -.5f}, {.9f, .9f, .9f}},
             {{-.5f, .5f, .5f}, {.9f, .9f, .9f}},
 
-            // right face (yellow)
-            {{.5f, -.5f, -.5f}, {.8f, .8f, .1f}},
-            {{.5f, .5f, .5f}, {.8f, .8f, .1f}},
-            {{.5f, -.5f, .5f}, {.8f, .8f, .1f}},
-            {{.5f, -.5f, -.5f}, {.8f, .8f, .1f}},
-            {{.5f, .5f, -.5f}, {.8f, .8f, .1f}},
-            {{.5f, .5f, .5f}, {.8f, .8f, .1f}},
+            // east yellow
+            {{.5f, -.5f, -.5f}, {.85f, .85f, .05f}},
+            {{.5f, .5f, .5f}, {.85f, .85f, .05f}},
+            {{.5f, -.5f, .5f}, {.85f, .85f, .05f}},
+            {{.5f, -.5f, -.5f}, {.85f, .85f, .05f}},
+            {{.5f, .5f, -.5f}, {.85f, .85f, .05f}},
+            {{.5f, .5f, .5f}, {.85f, .85f, .05f}},
 
-            // top face (orange, remember y axis points down)
-            {{-.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
-            {{.5f, -.5f, .5f}, {.9f, .6f, .1f}},
-            {{-.5f, -.5f, .5f}, {.9f, .6f, .1f}},
-            {{-.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
-            {{.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
-            {{.5f, -.5f, .5f}, {.9f, .6f, .1f}},
+            // top black
+            {{-.5f, -.5f, -.5f}, {0.0f, 0.0f, 0.0f}},
+            {{.5f, -.5f, .5f}, {0.0f, 0.0f, 0.0f}},
+            {{-.5f, -.5f, .5f}, {0.0f, 0.0f, 0.0f}},
+            {{-.5f, -.5f, -.5f}, {0.0f, 0.0f, 0.0f}},
+            {{.5f, -.5f, -.5f}, {0.0f, 0.0f, 0.0f}},
+            {{.5f, -.5f, .5f}, {0.0f, 0.0f, 0.0f}},
 
-            // bottom face (red)
+            // bottom red
             {{-.5f, .5f, -.5f}, {.8f, .1f, .1f}},
             {{.5f, .5f, .5f}, {.8f, .1f, .1f}},
             {{-.5f, .5f, .5f}, {.8f, .1f, .1f}},
@@ -68,7 +89,7 @@ namespace lve
             {{.5f, .5f, -.5f}, {.8f, .1f, .1f}},
             {{.5f, .5f, .5f}, {.8f, .1f, .1f}},
 
-            // nose face (blue)
+            // north blue
             {{-.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
             {{.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
             {{-.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
@@ -76,7 +97,7 @@ namespace lve
             {{.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
             {{.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
 
-            // tail face (green)
+            // south green
             {{-.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
             {{.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
             {{-.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
@@ -97,12 +118,11 @@ namespace lve
     {
         std::shared_ptr<LveModel> lveModel = this->createCubeModel(
             this->lveDevice,
-            {.0f, .0f, .0f}
-        );
+            {.0f, .0f, .0f});
 
         LveGameObject cube = LveGameObject::createGameObject();
         cube.model = lveModel;
-        cube.transform.translation = {.0f, .0f, .5f};
+        cube.transform.translation = {.0f, .0f, 2.5f};
         cube.transform.scale = {.5f, .5f, .5f};
         this->gameObjects.push_back(std::move(cube));
     }
