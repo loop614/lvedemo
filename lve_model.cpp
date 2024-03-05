@@ -1,5 +1,8 @@
 #include "lve_model.hpp"
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
+
 #include <cassert>
 #include <cstring>
 #include <memory>
@@ -18,10 +21,20 @@ namespace lve
         vkDestroyBuffer(this->lveDevice.device(), this->vertexBuffer, nullptr);
         vkFreeMemory(this->lveDevice.device(), this->vertexBufferMemory, nullptr);
 
-        if (this->hasIndexBuffer) {
+        if (this->hasIndexBuffer)
+        {
             vkDestroyBuffer(this->lveDevice.device(), this->indexBuffer, nullptr);
             vkFreeMemory(this->lveDevice.device(), this->indexBufferMemory, nullptr);
         }
+    }
+
+    std::unique_ptr<LveModel> LveModel::createModelFromFile(LveDevice &device, const std::string &filepath)
+    {
+        Builder builder{};
+        builder.loadModel(filepath);
+        std::cout << "Vertex count " << builder.vertices.size() << "\n";
+
+        return std::make_unique<LveModel>(device, builder);
     }
 
     void LveModel::createVertexBuffers(const std::vector<Vertex> &vertices)
@@ -61,7 +74,10 @@ namespace lve
     {
         this->indexCount = static_cast<uint32_t>(indices.size());
         this->hasIndexBuffer = indexCount > 0;
-        if (!this->hasIndexBuffer) { return; }
+        if (!this->hasIndexBuffer)
+        {
+            return;
+        }
 
         VkDeviceSize bufferSize = sizeof(indices[0]) * this->indexCount;
 
@@ -94,9 +110,12 @@ namespace lve
 
     void LveModel::draw(VkCommandBuffer commandBuffer)
     {
-        if (this->hasIndexBuffer) {
+        if (this->hasIndexBuffer)
+        {
             vkCmdDrawIndexed(commandBuffer, this->indexCount, 1, 0, 0, 0);
-        } else {
+        }
+        else
+        {
             vkCmdDraw(commandBuffer, this->vertexCount, 1, 0, 0);
         }
     }
@@ -107,7 +126,8 @@ namespace lve
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
 
-        if (this->hasIndexBuffer) {
+        if (this->hasIndexBuffer)
+        {
             vkCmdBindIndexBuffer(commandBuffer, this->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
         }
     }
@@ -136,5 +156,60 @@ namespace lve
         attributeDescriptions[1].offset = offsetof(Vertex, color);
 
         return attributeDescriptions;
+    }
+
+    void LveModel::Builder::loadModel(const std::string &filePath)
+    {
+        tinyobj::attrib_t attrib;
+        std::vector<tinyobj::shape_t> shapes;
+        std::vector<tinyobj::material_t> materials;
+        std::string warn, err;
+
+        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filePath.c_str()))
+        {
+            throw std::runtime_error(warn + err);
+        }
+
+        this->vertices.clear();
+        this->indices.clear();
+
+        for (const auto &shape : shapes)
+        {
+            for (const auto &index : shape.mesh.indices)
+            {
+                Vertex vertex{};
+                if (index.vertex_index >= 0)
+                {
+                    vertex.position = {
+                        attrib.vertices[3 * index.vertex_index + 0],
+                        attrib.vertices[3 * index.vertex_index + 1],
+                        attrib.vertices[3 * index.vertex_index + 2]};
+
+                    auto colorIndex = 3 * index.vertex_index + 2;
+                    if (colorIndex < attrib.colors.size()) {
+                        vertex.color = {
+                            attrib.colors[colorIndex - 2],
+                            attrib.colors[colorIndex - 1],
+                            attrib.colors[colorIndex - 0]
+                        };
+                    }
+                }
+                if (index.normal_index >= 0)
+                {
+                    vertex.normal = {
+                        attrib.normals[3 * index.normal_index + 0],
+                        attrib.normals[3 * index.normal_index + 1],
+                        attrib.normals[3 * index.normal_index + 2]};
+                }
+                if (index.texcoord_index >= 0)
+                {
+                    vertex.uv = {
+                        attrib.normals[2 * index.texcoord_index + 0],
+                        attrib.normals[2 * index.texcoord_index + 1]};
+                }
+
+                this->vertices.push_back(vertex);
+            }
+        }
     }
 }
