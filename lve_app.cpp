@@ -113,11 +113,11 @@ namespace lve
 
     void LveApp::loadGameObjects()
     {
-        std::shared_ptr<LveModel> lveModel = LveModel::createModelFromFile(this->lveDevice, "models/colored_cube.obj");
-        LveGameObject cube = LveGameObject::createGameObject();
-        cube.model = lveModel;
-        cube.transform.translation = {.0f, .0f, 2.5f};
-        cube.transform.scale = {.5f, .5f, .5f};
-        this->gameObjects.push_back(std::move(cube));
+        std::shared_ptr<LveModel> lveModel = LveModel::createModelFromFile(this->lveDevice, "models/smooth_vase.obj");
+        LveGameObject gameObject = LveGameObject::createGameObject();
+        gameObject.model = lveModel;
+        gameObject.transform.translation = {.0f, .0f, 2.5f};
+        gameObject.transform.scale = glm::vec3{3.f};
+        this->gameObjects.push_back(std::move(gameObject));
     }
 }

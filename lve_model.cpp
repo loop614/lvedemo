@@ -1,12 +1,30 @@
 #include "lve_model.hpp"
+#include "lve_utils.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 
 #include <cassert>
 #include <cstring>
 #include <memory>
-#include <iostream>
+#include <unordered_map>
+
+namespace std
+{
+    template <>
+    struct hash<lve::LveModel::Vertex>
+    {
+        size_t operator()(lve::LveModel::Vertex const &vertex) const
+        {
+            size_t seed = 0;
+            lve::hashCombine(seed, vertex.position, vertex.color, vertex.normal, vertex.uv);
+
+            return seed;
+        }
+    };
+}
 
 namespace lve
 {
@@ -32,7 +50,6 @@ namespace lve
     {
         Builder builder{};
         builder.loadModel(filepath);
-        std::cout << "Vertex count " << builder.vertices.size() << "\n";
 
         return std::make_unique<LveModel>(device, builder);
     }
@@ -173,6 +190,7 @@ namespace lve
         this->vertices.clear();
         this->indices.clear();
 
+        std::unordered_map<Vertex, uint32_t> uniqueVertices{};
         for (const auto &shape : shapes)
         {
             for (const auto &index : shape.mesh.indices)
@@ -186,12 +204,12 @@ namespace lve
                         attrib.vertices[3 * index.vertex_index + 2]};
 
                     auto colorIndex = 3 * index.vertex_index + 2;
-                    if (colorIndex < attrib.colors.size()) {
+                    if (colorIndex < attrib.colors.size())
+                    {
                         vertex.color = {
                             attrib.colors[colorIndex - 2],
                             attrib.colors[colorIndex - 1],
-                            attrib.colors[colorIndex - 0]
-                        };
+                            attrib.colors[colorIndex - 0]};
                     }
                 }
                 if (index.normal_index >= 0)
@@ -208,7 +226,11 @@ namespace lve
                         attrib.normals[2 * index.texcoord_index + 1]};
                 }
 
-                this->vertices.push_back(vertex);
+                if (uniqueVertices.count(vertex) == 0) {
+                    uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+                    this->vertices.push_back(vertex);
+                }
+                this->indices.push_back(uniqueVertices[vertex]);
             }
         }
     }
