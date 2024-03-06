@@ -1,4 +1,4 @@
-#include "lve_app.hpp"
+#include "little_vulkan_engine/lve_app.hpp"
 
 #include <cstdlib>
 #include <iostream>

@@ -1,8 +1,8 @@
 CFLAGS = -std=c++17 # -O3
 LDFLAGS = -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi
 
-LveDemo: *.cpp *.hpp
-	g++ $(CFLAGS) -o LveDemo *.cpp $(LDFLAGS)
+LveDemo: main.cpp little_vulkan_engine/*.hpp little_vulkan_engine/*.cpp
+	g++ $(CFLAGS) -o LveDemo main.cpp little_vulkan_engine/*.cpp $(LDFLAGS)
 
 Shaders:  shaders/*.vert shaders/*.frag
 	./shaders/compile.sh
