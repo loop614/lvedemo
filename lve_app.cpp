@@ -2,6 +2,7 @@
 #include "keyboard_movement_controller.hpp"
 #include "lve_camera.hpp"
 #include "lve_render_system.hpp"
+#include "lve_buffer.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -14,11 +15,29 @@
 
 namespace lve
 {
+    struct GlobalUbo
+    {
+        glm::mat4 projectionView{1.f};
+        glm::vec3 lightDirection = glm::normalize(glm::vec3{1.f, -3.f, -1.f});
+    };
+
     LveApp::LveApp() { this->loadGameObjects(); }
     LveApp::~LveApp() {}
 
     void LveApp::run()
     {
+        std::vector<std::unique_ptr<LveBuffer>> uboBuffers(LveSwapChain::MAX_FRAMES_IN_FLIGHT);
+        for (int i = 0; i < uboBuffers.size(); i++) {
+            uboBuffers[i] = std::make_unique<LveBuffer>(
+                this->lveDevice,
+                sizeof(GlobalUbo),
+                1,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+
+            uboBuffers[i]->map();
+        }
+
         LveRenderSystem renderSystem{this->lveDevice, this->lveRenderer.getSwapChainRenderPass()};
         LveCamera camera{};
         // camera.setViewDirection(glm::vec3(0.f), glm::vec3(0.5f, 0.f, 1.f));
@@ -44,8 +63,18 @@ namespace lve
 
             if (VkCommandBuffer commandBuffer = this->lveRenderer.beginFrame())
             {
+                int frameIndex = this->lveRenderer.getFrameIndex();
+                FrameInfo frameInfo{frameIndex, frameTime, commandBuffer, camera};
+
+                // update
+                GlobalUbo ubo{};
+                ubo.projectionView = camera.getProjection() * camera.getView();
+                uboBuffers[frameIndex]->writeToBuffer(&ubo);
+                uboBuffers[frameIndex]->flush();
+
+                // render
                 this->lveRenderer.beginSwapChainRenderPass(commandBuffer);
-                renderSystem.renderGameObjects(commandBuffer, this->gameObjects, camera);
+                renderSystem.renderGameObjects(frameInfo, this->gameObjects);
                 this->lveRenderer.endSwapChainRenderPass(commandBuffer);
                 this->lveRenderer.endFrame();
             }
@@ -100,13 +129,12 @@ namespace lve
         }
 
         modelBuilder.indices = {
-             0,  1,  2,  0,  3,  1,
-             4,  5,  6,  4,  7,  5,
-             8,  9, 10,  8, 11,  9,
+            0, 1, 2, 0, 3, 1,
+            4, 5, 6, 4, 7, 5,
+            8, 9, 10, 8, 11, 9,
             12, 13, 14, 12, 15, 13,
             16, 17, 18, 16, 19, 17,
-            20, 21, 22, 20, 23, 21
-        };
+            20, 21, 22, 20, 23, 21};
 
         return std::make_unique<LveModel>(device, modelBuilder);
     }
