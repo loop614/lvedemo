@@ -17,15 +17,18 @@ namespace lve
 {
     struct GlobalUbo
     {
-        alignas(16) glm::mat4 projectionView{1.f};
-        alignas(16) glm::vec3 lightDirection = glm::normalize(glm::vec3{1.f, -3.f, -1.f});
+        glm::mat4 projectionView{1.f};
+        glm::vec4 ambientColor{1.f, 1.f, 1.f, .02f};
+        glm::vec3 lightPosition{-1.f};
+        alignas(16) glm::vec4 lightColor{1.f};
     };
 
-    LveApp::LveApp() {
+    LveApp::LveApp()
+    {
         this->globalPool = LveDescriptorPool::Builder(this->lveDevice)
-            .setMaxSets(LveSwapChain::MAX_FRAMES_IN_FLIGHT)
-            .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, LveSwapChain::MAX_FRAMES_IN_FLIGHT)
-            .build();
+                               .setMaxSets(LveSwapChain::MAX_FRAMES_IN_FLIGHT)
+                               .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, LveSwapChain::MAX_FRAMES_IN_FLIGHT)
+                               .build();
 
         this->loadGameObjects();
     }
@@ -35,7 +38,8 @@ namespace lve
     void LveApp::run()
     {
         std::vector<std::unique_ptr<LveBuffer>> uboBuffers(LveSwapChain::MAX_FRAMES_IN_FLIGHT);
-        for (int i = 0; i < uboBuffers.size(); i++) {
+        for (int i = 0; i < uboBuffers.size(); i++)
+        {
             uboBuffers[i] = std::make_unique<LveBuffer>(
                 this->lveDevice,
                 sizeof(GlobalUbo),
@@ -47,11 +51,12 @@ namespace lve
         }
 
         std::unique_ptr<LveDescriptorSetLayout> globalSetLayout = LveDescriptorSetLayout::Builder(this->lveDevice)
-            .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
-            .build();
+                                                                      .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+                                                                      .build();
 
         std::vector<VkDescriptorSet> globalDescriptorSets{LveSwapChain::MAX_FRAMES_IN_FLIGHT};
-        for (int i = 0; i < globalDescriptorSets.size(); i++) {
+        for (int i = 0; i < globalDescriptorSets.size(); i++)
+        {
             VkDescriptorBufferInfo bufferInfo = uboBuffers[i]->descriptorInfo();
             LveDescriptorWriter(*globalSetLayout, *this->globalPool)
                 .writeBuffer(0, &bufferInfo)
@@ -64,6 +69,8 @@ namespace lve
         camera.setViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f));
 
         auto viewerObject = LveGameObject::createGameObject();
+        viewerObject.transform.translation.z = -2.5;
+
         KeyboardMovementController cameraController{};
         auto currentTime = std::chrono::high_resolution_clock::now();
 
@@ -79,7 +86,7 @@ namespace lve
             camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
 
             float aspect = this->lveRenderer.getAspectRatio();
-            camera.setPerspectiveProjection(glm::radians(50.f), aspect, 0.1f, 10.f);
+            camera.setPerspectiveProjection(glm::radians(50.f), aspect, 0.1f, 30.f);
 
             if (VkCommandBuffer commandBuffer = this->lveRenderer.beginFrame())
             {
@@ -108,15 +115,22 @@ namespace lve
         std::shared_ptr<LveModel> flatVaseModel = LveModel::createModelFromFile(this->lveDevice, "models/flat_vase.obj");
         LveGameObject flatVase = LveGameObject::createGameObject();
         flatVase.model = flatVaseModel;
-        flatVase.transform.translation = {-0.5f, .5f, 2.5f};
+        flatVase.transform.translation = {-0.5f, .5f, 0.0f};
         flatVase.transform.scale = glm::vec3{3.f, 1.5f, 3.f};
         this->gameObjects.push_back(std::move(flatVase));
 
         std::shared_ptr<LveModel> smoothVaseModel = LveModel::createModelFromFile(this->lveDevice, "models/smooth_vase.obj");
         LveGameObject smoothVase = LveGameObject::createGameObject();
         smoothVase.model = smoothVaseModel;
-        smoothVase.transform.translation = {.5f, .5f, 2.5f};
+        smoothVase.transform.translation = {.5f, .5f, 0.0f};
         smoothVase.transform.scale = glm::vec3{3.f, 1.5f, 3.f};
         this->gameObjects.push_back(std::move(smoothVase));
+
+        std::shared_ptr<LveModel> floorModel = LveModel::createModelFromFile(this->lveDevice, "models/quad.obj");
+        LveGameObject floor = LveGameObject::createGameObject();
+        floor.model = floorModel;
+        floor.transform.translation = {.5f, .5f, 0.0f};
+        floor.transform.scale = glm::vec3{3.f, 1.5f, 3.f};
+        this->gameObjects.push_back(std::move(floor));
     }
 }
