@@ -4,30 +4,35 @@
 #include "lve_window.hpp"
 #include "lve_device.hpp"
 #include "lve_renderer.hpp"
+#include "lve_descriptors.hpp"
 
 #include <memory>
 #include <vector>
 
-namespace lve {
-    class LveApp {
-        public:
-            static constexpr int HEIGHT = 600;
-            static constexpr int WIDTH = 800;
-            void run();
+namespace lve
+{
+    class LveApp
+    {
+    public:
+        static constexpr int HEIGHT = 600;
+        static constexpr int WIDTH = 800;
 
-            LveApp();
-            ~LveApp();
+        LveApp();
+        ~LveApp();
 
-            LveApp(const LveApp &) = delete;
-            LveApp &operator=(const LveApp &) = delete;
+        LveApp(const LveApp &) = delete;
+        LveApp &operator=(const LveApp &) = delete;
 
-        private:
-            void loadGameObjects();
-            std::unique_ptr<LveModel> createCubeModel(LveDevice &device, glm::vec3 offset);
+        void run();
 
-            LveWindow lveWindow{WIDTH, HEIGHT, "Little Vulkan Engine!"};
-            LveDevice lveDevice{lveWindow};
-            LveRenderer lveRenderer{lveWindow, lveDevice};
-            std::vector<LveGameObject> gameObjects;
+    private:
+        void loadGameObjects();
+
+        LveWindow lveWindow{WIDTH, HEIGHT, "Little Vulkan Engine!"};
+        LveDevice lveDevice{lveWindow};
+        LveRenderer lveRenderer{lveWindow, lveDevice};
+
+        std::unique_ptr<LveDescriptorPool> globalPool{};
+        std::vector<LveGameObject> gameObjects;
     };
 }

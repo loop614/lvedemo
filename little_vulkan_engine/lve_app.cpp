@@ -17,11 +17,19 @@ namespace lve
 {
     struct GlobalUbo
     {
-        glm::mat4 projectionView{1.f};
-        glm::vec3 lightDirection = glm::normalize(glm::vec3{1.f, -3.f, -1.f});
+        alignas(16) glm::mat4 projectionView{1.f};
+        alignas(16) glm::vec3 lightDirection = glm::normalize(glm::vec3{1.f, -3.f, -1.f});
     };
 
-    LveApp::LveApp() { this->loadGameObjects(); }
+    LveApp::LveApp() {
+        this->globalPool = LveDescriptorPool::Builder(this->lveDevice)
+            .setMaxSets(LveSwapChain::MAX_FRAMES_IN_FLIGHT)
+            .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, LveSwapChain::MAX_FRAMES_IN_FLIGHT)
+            .build();
+
+        this->loadGameObjects();
+    }
+
     LveApp::~LveApp() {}
 
     void LveApp::run()
@@ -38,7 +46,19 @@ namespace lve
             uboBuffers[i]->map();
         }
 
-        LveRenderSystem renderSystem{this->lveDevice, this->lveRenderer.getSwapChainRenderPass()};
+        std::unique_ptr<LveDescriptorSetLayout> globalSetLayout = LveDescriptorSetLayout::Builder(this->lveDevice)
+            .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+            .build();
+
+        std::vector<VkDescriptorSet> globalDescriptorSets{LveSwapChain::MAX_FRAMES_IN_FLIGHT};
+        for (int i = 0; i < globalDescriptorSets.size(); i++) {
+            VkDescriptorBufferInfo bufferInfo = uboBuffers[i]->descriptorInfo();
+            LveDescriptorWriter(*globalSetLayout, *this->globalPool)
+                .writeBuffer(0, &bufferInfo)
+                .build(globalDescriptorSets[i]);
+        }
+
+        LveRenderSystem renderSystem{this->lveDevice, this->lveRenderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout()};
         LveCamera camera{};
         // camera.setViewDirection(glm::vec3(0.f), glm::vec3(0.5f, 0.f, 1.f));
         camera.setViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f));
@@ -64,7 +84,7 @@ namespace lve
             if (VkCommandBuffer commandBuffer = this->lveRenderer.beginFrame())
             {
                 int frameIndex = this->lveRenderer.getFrameIndex();
-                FrameInfo frameInfo{frameIndex, frameTime, commandBuffer, camera};
+                FrameInfo frameInfo{frameIndex, frameTime, commandBuffer, camera, globalDescriptorSets[frameIndex]};
 
                 // update
                 GlobalUbo ubo{};
@@ -82,62 +102,6 @@ namespace lve
 
         vkDeviceWaitIdle(this->lveDevice.device());
     };
-
-    std::unique_ptr<LveModel> LveApp::createCubeModel(LveDevice &device, glm::vec3 offset)
-    {
-        LveModel::Builder modelBuilder{};
-        modelBuilder.vertices = {
-            // west white
-            {{-.5f, -.5f, -.5f}, {.9f, .9f, .9f}},
-            {{-.5f, .5f, .5f}, {.9f, .9f, .9f}},
-            {{-.5f, -.5f, .5f}, {.9f, .9f, .9f}},
-            {{-.5f, .5f, -.5f}, {.9f, .9f, .9f}},
-
-            // east yellow
-            {{.5f, -.5f, -.5f}, {.8f, .8f, .1f}},
-            {{.5f, .5f, .5f}, {.8f, .8f, .1f}},
-            {{.5f, -.5f, .5f}, {.8f, .8f, .1f}},
-            {{.5f, .5f, -.5f}, {.8f, .8f, .1f}},
-
-            // top black
-            {{-.5f, -.5f, -.5f}, {0.0f, 0.0f, 0.0f}},
-            {{.5f, -.5f, .5f}, {0.0f, 0.0f, 0.0f}},
-            {{-.5f, -.5f, .5f}, {0.0f, 0.0f, 0.0f}},
-            {{.5f, -.5f, -.5f}, {0.0f, 0.0f, 0.0f}},
-
-            // bottom red
-            {{-.5f, .5f, -.5f}, {.8f, .1f, .1f}},
-            {{.5f, .5f, .5f}, {.8f, .1f, .1f}},
-            {{-.5f, .5f, .5f}, {.8f, .1f, .1f}},
-            {{.5f, .5f, -.5f}, {.8f, .1f, .1f}},
-
-            // north blue
-            {{-.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
-            {{.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
-            {{-.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
-            {{.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
-
-            // south green
-            {{-.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
-            {{.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
-            {{-.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
-            {{.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
-        };
-        for (auto &v : modelBuilder.vertices)
-        {
-            v.position += offset;
-        }
-
-        modelBuilder.indices = {
-            0, 1, 2, 0, 3, 1,
-            4, 5, 6, 4, 7, 5,
-            8, 9, 10, 8, 11, 9,
-            12, 13, 14, 12, 15, 13,
-            16, 17, 18, 16, 19, 17,
-            20, 21, 22, 20, 23, 21};
-
-        return std::make_unique<LveModel>(device, modelBuilder);
-    }
 
     void LveApp::loadGameObjects()
     {
