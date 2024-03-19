@@ -91,7 +91,13 @@ namespace lve
             if (VkCommandBuffer commandBuffer = this->lveRenderer.beginFrame())
             {
                 int frameIndex = this->lveRenderer.getFrameIndex();
-                FrameInfo frameInfo{frameIndex, frameTime, commandBuffer, camera, globalDescriptorSets[frameIndex]};
+                FrameInfo frameInfo{
+                    frameIndex,
+                    frameTime,
+                    commandBuffer,
+                    camera,
+                    globalDescriptorSets[frameIndex],
+                    this->gameObjects};
 
                 // update
                 GlobalUbo ubo{};
@@ -101,7 +107,7 @@ namespace lve
 
                 // render
                 this->lveRenderer.beginSwapChainRenderPass(commandBuffer);
-                renderSystem.renderGameObjects(frameInfo, this->gameObjects);
+                renderSystem.renderGameObjects(frameInfo);
                 this->lveRenderer.endSwapChainRenderPass(commandBuffer);
                 this->lveRenderer.endFrame();
             }
@@ -117,20 +123,20 @@ namespace lve
         flatVase.model = flatVaseModel;
         flatVase.transform.translation = {-0.5f, .5f, 0.0f};
         flatVase.transform.scale = glm::vec3{3.f, 1.5f, 3.f};
-        this->gameObjects.push_back(std::move(flatVase));
+        this->gameObjects.emplace(flatVase.getId(), std::move(flatVase));
 
         std::shared_ptr<LveModel> smoothVaseModel = LveModel::createModelFromFile(this->lveDevice, "models/smooth_vase.obj");
         LveGameObject smoothVase = LveGameObject::createGameObject();
         smoothVase.model = smoothVaseModel;
         smoothVase.transform.translation = {.5f, .5f, 0.0f};
         smoothVase.transform.scale = glm::vec3{3.f, 1.5f, 3.f};
-        this->gameObjects.push_back(std::move(smoothVase));
+        this->gameObjects.emplace(smoothVase.getId(), std::move(smoothVase));
 
         std::shared_ptr<LveModel> floorModel = LveModel::createModelFromFile(this->lveDevice, "models/quad.obj");
         LveGameObject floor = LveGameObject::createGameObject();
         floor.model = floorModel;
         floor.transform.translation = {.5f, .5f, 0.0f};
         floor.transform.scale = glm::vec3{3.f, 1.5f, 3.f};
-        this->gameObjects.push_back(std::move(floor));
+        this->gameObjects.emplace(floor.getId(), std::move(floor));
     }
 }

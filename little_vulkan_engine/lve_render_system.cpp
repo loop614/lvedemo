@@ -64,7 +64,7 @@ namespace lve
             pipelineConfig);
     }
 
-    void LveRenderSystem::renderGameObjects(FrameInfo &frameInfo, std::vector<LveGameObject> &gameObjects)
+    void LveRenderSystem::renderGameObjects(FrameInfo &frameInfo)
     {
         this->lvePipeline->bind(frameInfo.commandBuffer);
         vkCmdBindDescriptorSets(
@@ -77,8 +77,10 @@ namespace lve
             0,
             nullptr);
 
-        for (LveGameObject &obj : gameObjects)
+        for (std::pair<const LveGameObject::id_t, LveGameObject> &kv : frameInfo.gameObjects)
         {
+            LveGameObject& obj = kv.second;
+            if (obj.model == nullptr) continue;
             SimplePushConstantData push{};
             glm::mat4 modelMatrix = obj.transform.mat4();
             push.modelMatrix = obj.transform.mat4();

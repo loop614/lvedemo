@@ -33,6 +33,6 @@ namespace lve
         LveRenderer lveRenderer{lveWindow, lveDevice};
 
         std::unique_ptr<LveDescriptorPool> globalPool{};
-        std::vector<LveGameObject> gameObjects;
+        LveGameObject::Map gameObjects;
     };
 }
