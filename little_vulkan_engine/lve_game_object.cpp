@@ -32,7 +32,8 @@ namespace lve
             {translation.x, translation.y, translation.z, 1.0f}};
     }
 
-    glm::mat3 TransformComponent::normalMatrix() {
+    glm::mat3 TransformComponent::normalMatrix()
+    {
         const float c3 = glm::cos(rotation.z);
         const float s3 = glm::sin(rotation.z);
         const float c2 = glm::cos(rotation.x);
@@ -57,5 +58,19 @@ namespace lve
                 invScale.z * (-s2),
                 invScale.z * (c1 * c2),
             }};
+    }
+
+    LveGameObject LveGameObject::makePointLight(
+        float intesity,
+        float radius,
+        glm::vec3 color)
+    {
+        LveGameObject gameObj = LveGameObject::createGameObject();
+        gameObj.color = color;
+        gameObj.transform.scale.x = radius;
+        gameObj.pointLight = std::make_unique<PointLightComponent>();
+        gameObj.pointLight->lightIntesity = intesity;
+
+        return gameObj;
     }
 }
