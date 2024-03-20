@@ -64,7 +64,10 @@ namespace lve
         // camera.setViewTarget(glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 2.5f));
 
         auto viewerObject = LveGameObject::createGameObject();
-        viewerObject.transform.translation.z = -2.5;
+        viewerObject.transform.translation.z = -5.5;
+        viewerObject.transform.translation.y = -3.5;
+
+        viewerObject.transform.rotation.x = -0.6;
 
         KeyboardMovementController cameraController{};
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -138,8 +141,8 @@ namespace lve
         floor.transform.scale = glm::vec3{3.f, 1.5f, 3.f};
         this->gameObjects.emplace(floor.getId(), std::move(floor));
 
-        auto pointLight = LveGameObject::makePointLight(0.2f);
-        this->gameObjects.emplace(pointLight.getId(), std::move(pointLight));
+        // auto pointLight = LveGameObject::makePointLight(0.2f);
+        // this->gameObjects.emplace(pointLight.getId(), std::move(pointLight));
         std::vector<glm::vec3> lightColors{
             {1.f, .1f, .1f},
             {.1f, .1f, 1.f},
