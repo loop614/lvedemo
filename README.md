@@ -2,8 +2,7 @@
 - Following Brendan Galea's vulkan [tutorial](https://www.youtube.com/playlist?list=PL8327DO66nu9qYVKLDmdLW_84-yE4auCR)
 - Little Vulkan Engine
 
-<div align="left"><img src="https://raw.githubusercontent.com/loop614/lvedemo/main/vase_top.png" width=560 height=315 alt="vase_top"/></div>
-<div align="left"><img src="https://raw.githubusercontent.com/loop614/lvedemo/main/vase_bottom.png" width=560 height=315 alt="vase_bottom"/></div>
+<div align="left"><img src="https://raw.githubusercontent.com/loop614/lvedemo/main/vase_moon_floor.png" width=560 height=315 alt="vase_moon_floor"/></div>
 
 ## Quick Start
 ```console

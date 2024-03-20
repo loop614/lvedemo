@@ -1,8 +1,10 @@
 #include "lve_app.hpp"
 #include "keyboard_movement_controller.hpp"
 #include "lve_camera.hpp"
-#include "lve_render_system.hpp"
 #include "lve_buffer.hpp"
+
+#include "lve_render_system.hpp"
+#include "point_light_system.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -17,7 +19,8 @@ namespace lve
 {
     struct GlobalUbo
     {
-        glm::mat4 projectionView{1.f};
+        glm::mat4 projection{1.f};
+        glm::mat4 view{1.f};
         glm::vec4 ambientColor{1.f, 1.f, 1.f, .02f};
         glm::vec3 lightPosition{-1.f};
         alignas(16) glm::vec4 lightColor{1.f};
@@ -64,12 +67,13 @@ namespace lve
         }
 
         LveRenderSystem renderSystem{this->lveDevice, this->lveRenderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout()};
+        PointLightSystem pointLightSystem{this->lveDevice, this->lveRenderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout()};
         LveCamera camera{};
         // camera.setViewDirection(glm::vec3(0.f), glm::vec3(0.5f, 0.f, 1.f));
         camera.setViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f));
 
         auto viewerObject = LveGameObject::createGameObject();
-        viewerObject.transform.translation.z = -2.5;
+        viewerObject.transform.translation.z = -2;
 
         KeyboardMovementController cameraController{};
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -101,13 +105,15 @@ namespace lve
 
                 // update
                 GlobalUbo ubo{};
-                ubo.projectionView = camera.getProjection() * camera.getView();
+                ubo.projection = camera.getProjection();
+                ubo.view = camera.getView();
                 uboBuffers[frameIndex]->writeToBuffer(&ubo);
                 uboBuffers[frameIndex]->flush();
 
                 // render
                 this->lveRenderer.beginSwapChainRenderPass(commandBuffer);
                 renderSystem.renderGameObjects(frameInfo);
+                pointLightSystem.render(frameInfo);
                 this->lveRenderer.endSwapChainRenderPass(commandBuffer);
                 this->lveRenderer.endFrame();
             }
