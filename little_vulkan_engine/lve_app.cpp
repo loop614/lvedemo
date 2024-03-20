@@ -61,10 +61,10 @@ namespace lve
         PointLightSystem pointLightSystem{this->lveDevice, this->lveRenderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout()};
         LveCamera camera{};
         // camera.setViewDirection(glm::vec3(0.f), glm::vec3(0.5f, 0.f, 1.f));
-        camera.setViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f));
+        // camera.setViewTarget(glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 2.5f));
 
         auto viewerObject = LveGameObject::createGameObject();
-        viewerObject.transform.translation.z = -2;
+        viewerObject.transform.translation.z = -2.5;
 
         KeyboardMovementController cameraController{};
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -98,6 +98,7 @@ namespace lve
                 GlobalUbo ubo{};
                 ubo.projection = camera.getProjection();
                 ubo.view = camera.getView();
+                ubo.inverseView = camera.getInverseView();
                 pointLightSystem.update(frameInfo, ubo);
                 uboBuffers[frameIndex]->writeToBuffer(&ubo);
                 uboBuffers[frameIndex]->flush();
